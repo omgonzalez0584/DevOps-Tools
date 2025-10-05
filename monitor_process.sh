@@ -17,8 +17,8 @@ else
 	if [ "$?" -eq "0" ];then
 	 	echo "Proceso $proc reiniciado correctamente"
                 fecha=$(date +"%Y%m%d%H%M%S")
-		echo "$fecha - $proc no estaba activo. Se reinicio automaticamente" >> monitor_process.log 
-		sudo mv monitor_process.log /var/log
+#Se guarda registro en el archivo .log
+		echo "$fecha - $proc no estaba activo. Se reinicio automaticamente" | sudo tee -a /var/log/monitor_process.log
 	else
 		echo "Es probable que este servicio no este instaldo en tu servidor"
 	fi	
