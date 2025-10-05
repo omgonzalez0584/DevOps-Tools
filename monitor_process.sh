@@ -5,11 +5,18 @@
 proc=$1
 
 #filtrando proceso ingresado por el usuario
-ps -aux | grep "^root" | grep "$1"
+ps -aux | grep "^root" | grep "$proc"
 if [ "$?" -eq "0" ];then
-	echo "El proceso $proc se esta ejecutando"
+	echo "El proceso $proc esta corriendo correctamente."
 else
-	echo "El proceso $proc no se esta ejecutando"
+	echo "[Alerta] el proceso $proc no esta activo. Intentando reiniciarlo.."
+        sudo systemctl start $proc
+	ps -aux | grep "^root" | grep "$proc"
+	if [ "$?" -eq "0" ];then
+	 	echo "Proceso $proc reiniciado correctamente"
+	else
+		echo "Es probable que este servicio no este instaldo en tu servidor"
+	fi	
 fi
 
 
