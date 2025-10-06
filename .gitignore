@@ -1,1 +1,4 @@
 #this file is for ignore files...just type what you want to ignore
+#Example
+#this file below will be ignore after we made a push
+hola.tfs
