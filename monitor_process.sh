@@ -16,7 +16,7 @@ else
 #Se valida que se ejecuta el reinicio correctamente
 	if [ "$?" -eq "0" ];then
 	 	echo "Proceso $proc reiniciado correctamente"
-                fecha=$(date +"%Y%m%d%H%M%S")
+                fecha=$(date '+%Y-%m-%d %H:%M:%S')
 #Se guarda registro en el archivo .log
 		echo "$fecha - $proc no estaba activo. Se reinicio automaticamente" | sudo tee -a /var/log/monitor_process.log
 	else
