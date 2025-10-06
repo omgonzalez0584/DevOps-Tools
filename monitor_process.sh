@@ -2,6 +2,7 @@
 #
 #Script monitoreo estado de los procesos criticos
 
+#Guarda proceso ingresado por el usuario
 proc=$1
 
 #filtrando proceso ingresado por el usuario
