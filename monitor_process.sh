@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-#Script monitoreo estado de los procesos criticos
+#Este script valida si un proceso critico esta corriendo ingresado por el usuario.
 
 #Guarda proceso ingresado por el usuario
 proc=$1
