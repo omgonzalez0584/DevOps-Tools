@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-#Script monitoreo estado de los procesos criticos
+#Este script monitoreo procesos criticos y si detecta alguno abajo procede a reiniciarlo
 
 #Guarda proceso ingresado por el usuario
 proc=$1
