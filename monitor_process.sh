@@ -1,11 +1,12 @@
 #! /bin/bash
 #
+#set -euo pipefail
 #Script monitoreo estado de los procesos criticos
 
 #Guarda proceso ingresado por el usuario
 if [ -z "$1" ]; then
-	echo "Debe ingresar un proceso"
-	exit 0
+    echo "Debe ingresar un proceso"
+    exit 1
 else
 	proc=$1
 #filtrando proceso ingresado por el usuario
@@ -28,6 +29,7 @@ else
 		fi	
 	fi
 fi
+
 
 
 
