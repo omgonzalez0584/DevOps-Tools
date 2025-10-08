@@ -6,13 +6,14 @@ variable "aws_region" {
 
 variable "aws_profile" {
   type        = string
-  description = "Aws profile credencntial (~/.aws/credentials)"
+  description = "Aws profile credential"
   default     = "awsqa"
 }
 
 variable "bucket_name" {
   type        = string
   description = "Unique bucket name"
+  default = "monitor-process-s3-logs"
 }
 
 variable "owner" {
