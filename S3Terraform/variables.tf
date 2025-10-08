@@ -6,7 +6,7 @@ variable "aws_region" {
 
 variable "aws_profile" {
   type        = string
-  description = "Aws profile credencntial (~/.aws/credentials)"
+  description = "Aws profile credential"
   default     = "awsqa"
 }
 
