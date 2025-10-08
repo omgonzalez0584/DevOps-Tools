@@ -13,6 +13,7 @@ variable "aws_profile" {
 variable "bucket_name" {
   type        = string
   description = "Unique bucket name"
+  default = "monitor-process-s3-logs"
 }
 
 variable "owner" {
