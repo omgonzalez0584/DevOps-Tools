@@ -1,11 +1,7 @@
 #! /bin/bash
 #
-<<<<<<< HEAD
 #set -euo pipefail
 #Script monitoreo estado de los procesos criticos
-=======
-#Este script valida si un proceso critico esta corriendo ingresado por el usuario.
->>>>>>> origin/main
 
 #Guarda proceso ingresado por el usuario
 if [ -z "$1" ]; then
