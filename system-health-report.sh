@@ -4,6 +4,11 @@
 fecha=$(date)
 memoria=$(free)
 space=$(df)
+host=$($hostmane)
+up=$(uptime)
 echo "Fecha de ejecucion: $fecha"
 echo "Memoria del servidor: $memoria"
 echo "Espacio en disco: $space"
+echo "Hostname: $host"
+echo "Uptime: $uptime"
+ 
