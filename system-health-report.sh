@@ -5,7 +5,7 @@
 fecha=$(date)
 memoria=$(free)
 space=$(df)
-host=$(hostmane)
+host=$(hostname)
 up=$(uptime)
 
 #Desplegando comandos de monitoreo
