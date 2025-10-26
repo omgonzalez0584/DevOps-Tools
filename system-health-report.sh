@@ -3,6 +3,7 @@
 
 #Variables que capturan los comandos de monitoreo
 fecha=$(date)
+cpu=$(ps)
 memoria=$(free)
 space=$(df)
 host=$(hostname)
@@ -10,6 +11,7 @@ up=$(uptime)
 
 #Desplegando comandos de monitoreo
 echo "Fecha de ejecucion: $fecha"
+echo "CPU: $cpu"
 echo "Memoria del servidor: $memoria"
 echo "Espacio en disco: $space"
 echo "Hostname: $host"
