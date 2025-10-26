@@ -5,12 +5,12 @@
 fecha=$(date)
 memoria=$(free)
 space=$(df)
-host=$(hostmane)
+name=$(hostmane)
 up=$(uptime)
 
 #Desplegando comandos de monitoreo
 echo "Fecha de ejecucion: $fecha"
 echo "Memoria del servidor: $memoria"
 echo "Espacio en disco: $space"
-echo "Hostname: $host"
+echo "Hostname: $name"
 echo "Uptime: $up"
