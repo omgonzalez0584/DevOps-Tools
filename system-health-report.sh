@@ -3,22 +3,28 @@
 
 #Variables que capturan los comandos de monitoreo
 fecha=$(date)
-cpu=$(ps)
+cpu=$(top -b -n 1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1)
 memoria=$(free -h | awk '/^Mem:/ {print "Total:",$2,"Used:", $3, "Free:", $4}')
-space=$(df)
+space=$(df -h | grep  -v ^tmpfs)
 host=$(hostname)
 up=$(uptime)
+top5=$(ps -aux | head -6 | awk '{print $3, $4, $11}')
 
 #Desplegando comandos de monitoreo
-echo "==================FECHA DE EJECUCION==============="
+echo "==================================================="
 echo "Fecha de ejecucion: $fecha"
-echo "=================CPU=============================="
-echo "CPU: $cpu"
-echo "=================MEMORIA=========================="
+echo "==================================================="
+echo "Porcentaje de CPU: $cpu%"
+echo "==================================================="
+echo "Estado de la memoria"
 echo "$memoria"
-echo "=================ESPACIO EN DISCO================="
-echo "Espacio en disco: $space"
-echo "=================HOSTNAME Y UPTIME================"
+echo "==================================================="
+echo "Espacio en disco"
+echo "$space"
+echo "==================================================="
+echo "Top 5 CPU y Memoria"
+echo "$top5"
+echo "==================================================="
 echo "Hostname: $host"
 echo "Uptime: $up"
 
