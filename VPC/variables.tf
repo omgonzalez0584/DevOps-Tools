@@ -18,3 +18,22 @@ variable "virginia" {
   })
 
 }
+
+variable "virginia_subnet-public" {
+  type = object({
+    public_subnet_cidr : list(string)
+  })
+}
+
+variable "virginia_subnet-private" {
+  type = object({
+    private_subnet_cidr : list(string)
+  })
+}
+
+variable "availability_zone" {
+  type    = object({
+    availability_zone : list(string)
+    description       : string
+  })
+  }
