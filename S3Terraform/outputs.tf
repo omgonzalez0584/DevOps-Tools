@@ -9,3 +9,5 @@ output "bucket_arn" {
 output "bucket_region" {
   value = var.aws_region
 }
+
+
