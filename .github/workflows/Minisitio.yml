@@ -133,6 +133,10 @@ jobs:
           git diff --exit-code files_metadata.txt || echo "Hay cambios en el archivo de metadatos"
         
         continue-on-error: true
+        
+      - name: Track downloaded zip file
+        run: |
+          git add Minisitio.zip
 
       # Solo hacer commit si hay cambios en el archivo de metadatos
       - name: Commit metadata file to GitHub
