@@ -1,0 +1,100 @@
+name: "Deploy Minisitio"
+
+on:
+  workflow_dispatch:
+    inputs:
+      bucket:
+        description: 'Subida a s3'
+        required: true
+        default: ${{ vars.S3_BUCKET_DEV }}
+        
+
+jobs:
+  dev-upload-minisitio:
+    name: DEV Subir Archivos RAR Descomprimidos a S3 y hacer PR
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: MINISITIO
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN_DEV }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Verify AWS Connection
+        run: |
+          echo "Verificando conexión AWS DEV..."
+          aws sts get-caller-identity
+          echo "Verificando acceso a S3..."
+          aws s3 ls s3://${{ vars.S3_BUCKET_DEV }}/ || exit 1
+
+      - name: Download RAR File from S3
+        run: |
+          echo "Descargando archivo .zip desde S3..."
+          aws s3 cp s3://${{ vars.S3_BUCKET_DEV }}/Minisitio.zip ./Minisitio.zip || exit 1
+          echo "✅ Archivo .zip descargado"
+
+      - name: Install Unzip
+        run: sudo apt-get install -y unzip
+
+      - name: Uncompress ZIP File
+        run: |
+          echo "Descomprimiendo el archivo .zip..."
+          unzip ./Minisitio.zip -d ./infra/s3/
+          echo "✅ Archivo descomprimido"
+
+      - name: Create a new branch for changes
+        run: |
+          echo "Creando una nueva rama para los cambios..."
+          git checkout -b update-minisitio-files
+
+      - name: Stage the new files and changes
+        run: |
+          echo "Preparando los archivos para el commit..."
+          git add ./infra/s3/*
+          git diff --staged
+          
+      - name: Commit changes
+        run: |
+          echo "Haciendo commit de los archivos descomprimidos..."
+          git commit -m "Agregado nuevo contenido del Minisitio desde S3"
+          
+      - name: Push changes to GitHub
+        run: |
+          echo "Subiendo cambios a GitHub..."
+          git push origin update-minisitio-files
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: develop
+          head: update-minisitio-files
+          title: "Actualización de archivos del Minisitio"
+          body: "Se han actualizado los archivos descomprimidos desde el archivo .rar."
+          labels: "minisitio-update"
+
+      - name: Upload Files to S3 DEV
+        run: |
+          echo "📤 Subiendo archivos descomprimidos a DEV S3..."
+          S3_BUCKET_DEV=${{ vars.S3_BUCKET_DEV }}
+          LOCAL_PATH="./infra/s3/"
+
+          echo "Bucket: s3://${S3_BUCKET_DEV}/"
+          for FILE in "$LOCAL_PATH"*; do
+            if [ -f "$FILE" ]; then
+              echo "⬆️ Subiendo: $FILE"
+              if aws s3 cp "$FILE" "s3://${S3_BUCKET_DEV}/$(basename $FILE)"; then
+                echo "✅ Archivo subido correctamente: $(basename $FILE)"
+              else
+                echo "❌ Error al subir: $(basename $FILE)"
+              fi
+            fi
+          done
