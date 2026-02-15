@@ -1,19 +1,14 @@
 name: "Deploy Minisitio"
 
 on:
-  workflow_dispatch:
-    inputs:
-      bucket:
-        description: 'Subida a s3'
-        required: true
-        default: 'minisitio'
-
+  pull_request:
+    branches:
+      - develop
+      
 jobs:
   dev-upload-minisitio:
     name: DEV Subir Archivos RAR Descomprimidos a S3 y hacer PR
-    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    environment: MINISITIO
 
     steps:
       - name: Checkout
@@ -43,33 +38,41 @@ jobs:
       - name: Install Unzip
         run: sudo apt-get install -y unzip
 
+      # Descomprimir en una carpeta temporal interna en el runner
       - name: Uncompress ZIP File
         run: |
           echo "Descomprimiendo el archivo .zip..."
-          unzip ./Minisitio.zip -d ./infra/s3/
+          TMP_DIR="/tmp/minisitio"
+          mkdir -p $TMP_DIR
+          unzip ./Minisitio.zip -d $TMP_DIR
           echo "✅ Archivo descomprimido"
 
+      # Crear una nueva rama para los cambios
       - name: Create a new branch for changes
         run: |
           echo "Creando una nueva rama para los cambios..."
           git checkout -b update-minisitio-files
 
+      # Preparar los archivos para el commit 
       - name: Stage the new files and changes
         run: |
           echo "Preparando los archivos para el commit..."
-          git add ./infra/s3/*
+          git add $TMP_DIR/*
           git diff --staged
-          
+
+      # Hacer commit de los cambios
       - name: Commit changes
         run: |
           echo "Haciendo commit de los archivos descomprimidos..."
           git commit -m "Agregado nuevo contenido del Minisitio desde S3"
-          
+
+      # Subir los cambios a GitHub
       - name: Push changes to GitHub
         run: |
           echo "Subiendo cambios a GitHub..."
           git push origin update-minisitio-files
 
+      # Crear un Pull Request
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
@@ -77,14 +80,15 @@ jobs:
           base: develop
           head: update-minisitio-files
           title: "Actualización de archivos del Minisitio"
-          body: "Se han actualizado los archivos descomprimidos desde el archivo .rar."
+          body: "Se han actualizado los archivos descomprimidos desde el archivo .zip."
           labels: "minisitio-update"
 
+      # Subir archivos descomprimidos a S3 
       - name: Upload Files to S3 DEV
         run: |
           echo "📤 Subiendo archivos descomprimidos a DEV S3..."
           S3_BUCKET_DEV=${{ vars.S3_BUCKET_DEV }}
-          LOCAL_PATH="./infra/s3/"
+          LOCAL_PATH="/tmp/minisitio/"
 
           echo "Bucket: s3://${S3_BUCKET_DEV}/"
           for FILE in "$LOCAL_PATH"*; do
@@ -97,3 +101,9 @@ jobs:
               fi
             fi
           done
+
+      # Limpieza
+      - name: Cleanup (remove temp files)
+        run: |
+          echo "🧹 Eliminando archivos temporales..."
+          rm -rf /tmp/minisitio
