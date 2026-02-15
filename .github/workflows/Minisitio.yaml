@@ -11,7 +11,7 @@ on:
 jobs:
   dev-upload-minisitio:
     name: DEV Subir Archivos RAR Descomprimidos a S3 y hacer PR
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/Flujo-s3'
     runs-on: ubuntu-latest
     environment: MINISITIO
 
