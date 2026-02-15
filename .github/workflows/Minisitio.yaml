@@ -6,7 +6,7 @@ on:
       bucket:
         description: 'Subida a s3'
         required: true
-        default: '${{ vars.S3_BUCKET_DEV }}'
+        default: 'minisitio'
 
 jobs:
   dev-upload-minisitio:
