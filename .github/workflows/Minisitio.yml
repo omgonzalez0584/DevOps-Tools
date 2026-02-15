@@ -1,14 +1,18 @@
 name: "Deploy Minisitio"
 
 on:
-  pull_request:
-    branches:
-      - develop
-      
+  workflow_dispatch:
+    inputs:
+      bucket:
+        description: 'Subida a s3'
+        required: true
+        default: 'minisitio'
+
 jobs:
   dev-upload-minisitio:
     name: DEV Subir Archivos RAR Descomprimidos a S3 y hacer PR
     runs-on: ubuntu-latest
+    environment: MINISITIO
 
     steps:
       - name: Checkout
@@ -38,7 +42,7 @@ jobs:
       - name: Install Unzip
         run: sudo apt-get install -y unzip
 
-      # Descomprimir en una carpeta temporal interna en el runner
+      # Descomprimir el archivo en un directorio temporal
       - name: Uncompress ZIP File
         run: |
           echo "Descomprimiendo el archivo .zip..."
@@ -47,43 +51,7 @@ jobs:
           unzip ./Minisitio.zip -d $TMP_DIR
           echo "✅ Archivo descomprimido"
 
-      # Crear una nueva rama para los cambios
-      - name: Create a new branch for changes
-        run: |
-          echo "Creando una nueva rama para los cambios..."
-          git checkout -b update-minisitio-files
-
-      # Preparar los archivos para el commit 
-      - name: Stage the new files and changes
-        run: |
-          echo "Preparando los archivos para el commit..."
-          git add $TMP_DIR/*
-          git diff --staged
-
-      # Hacer commit de los cambios
-      - name: Commit changes
-        run: |
-          echo "Haciendo commit de los archivos descomprimidos..."
-          git commit -m "Agregado nuevo contenido del Minisitio desde S3"
-
-      # Subir los cambios a GitHub
-      - name: Push changes to GitHub
-        run: |
-          echo "Subiendo cambios a GitHub..."
-          git push origin update-minisitio-files
-
-      # Crear un Pull Request
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: develop
-          head: update-minisitio-files
-          title: "Actualización de archivos del Minisitio"
-          body: "Se han actualizado los archivos descomprimidos desde el archivo .zip."
-          labels: "minisitio-update"
-
-      # Subir archivos descomprimidos a S3 
+      # Subir directamente los archivos descomprimidos a S3 (sin pasar por el repositorio)
       - name: Upload Files to S3 DEV
         run: |
           echo "📤 Subiendo archivos descomprimidos a DEV S3..."
@@ -102,7 +70,7 @@ jobs:
             fi
           done
 
-      # Limpieza
+      # Limpieza (eliminar archivos temporales)
       - name: Cleanup (remove temp files)
         run: |
           echo "🧹 Eliminando archivos temporales..."
