@@ -125,14 +125,19 @@ jobs:
           # Verificar que el archivo de metadatos fue actualizado correctamente
           cat $METADATA_FILE
 
-      # Configurar la identidad de Git para el commit
-      - name: Configure Git user
+      # Validar si el archivo de metadatos realmente tiene cambios antes de hacer commit
+      - name: Check for changes in metadata file
+        id: check_changes
         run: |
-          git config --global user.name "arfernandz17"
-          git config --global user.email "afernadez1@gmail.com"
+          # Comparar el archivo de metadatos actual con el nuevo
+          git diff --exit-code files_metadata.txt || echo "Hay cambios en el archivo de metadatos"
+        
+        # Si no hay cambios, evitar hacer commit
+        continue-on-error: true
 
-      # Agregar y hacer commit del archivo de metadatos en el repositorio
+      # Solo hacer commit si hay cambios
       - name: Commit metadata file to GitHub
+        if: steps.check_changes.outcome == 'success'
         run: |
           git add files_metadata.txt
           git commit -m "Actualizar metadatos de archivos subidos a S3"
