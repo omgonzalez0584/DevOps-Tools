@@ -48,7 +48,74 @@ jobs:
           unzip ./Minisitio.zip -d $TMP_DIR
           echo "✅ Archivo descomprimido"
 
-      # Subir directamente los archivos descomprimidos a S3 (sin pasar por el repositorio)
+      # Descargar contenido actual de S3 para comparación
+      - name: Download current files from S3 for comparison
+        run: |
+          echo "Descargando los archivos actuales de S3 para compararlos..."
+          AWS_S3_PATH="s3://${{ vars.S3_BUCKET_DEV }}/"
+          CURRENT_DIR="/tmp/current_minisitio"
+          mkdir -p $CURRENT_DIR
+          aws s3 sync $AWS_S3_PATH $CURRENT_DIR
+
+      # Comparar los archivos descomprimidos con los actuales en S3
+      - name: Compare files (new vs current)
+        run: |
+          echo "Comparando los archivos descomprimidos con los actuales en S3..."
+          NEW_FILES_DIR="/tmp/minisitio"
+          DIFF_DIR="/tmp/diff_result"
+          mkdir -p $DIFF_DIR
+
+          # Compara archivos nuevos con los actuales
+          diff -r $NEW_FILES_DIR $CURRENT_DIR > $DIFF_DIR/diff_result.txt || true
+
+          # Ver los resultados de la comparación
+          cat $DIFF_DIR/diff_result.txt
+          
+          # Verificar si hay diferencias
+          if [[ -s $DIFF_DIR/diff_result.txt ]]; then
+            echo "❗ Hay cambios detectados entre los archivos. Procediendo con el commit y PR..."
+          else
+            echo "✅ No hay cambios detectados. No es necesario crear PR."
+            exit 0  # Si no hay cambios, salimos
+          fi
+
+      # Crear una nueva rama para los cambios
+      - name: Create a new branch for changes
+        run: |
+          echo "Creando una nueva rama para los cambios..."
+          git checkout -b update-minisitio-files
+
+      # Subir solo los archivos con cambios
+      - name: Stage the new files and changes
+        run: |
+          echo "Preparando los archivos para el commit..."
+          git add $NEW_FILES_DIR/*
+          git diff --staged
+
+      # Hacer commit de los cambios
+      - name: Commit changes
+        run: |
+          echo "Haciendo commit de los archivos descomprimidos..."
+          git commit -m "Agregado nuevo contenido del Minisitio desde S3"
+
+      # Subir los cambios a GitHub
+      - name: Push changes to GitHub
+        run: |
+          echo "Subiendo cambios a GitHub..."
+          git push origin update-minisitio-files
+
+      # Crear un Pull Request
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: develop
+          head: update-minisitio-files
+          title: "Actualización de archivos del Minisitio"
+          body: "Se han actualizado los archivos descomprimidos desde el archivo .zip."
+          labels: "minisitio-update"
+
+      # Subir archivos descomprimidos a S3 (sin pasar por el repositorio)
       - name: Upload Files to S3 DEV
         run: |
           echo "📤 Subiendo archivos descomprimidos a DEV S3..."
@@ -72,3 +139,5 @@ jobs:
         run: |
           echo "🧹 Eliminando archivos temporales..."
           rm -rf /tmp/minisitio
+          rm -rf /tmp/current_minisitio
+          rm -rf /tmp/diff_result
