@@ -148,7 +148,7 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          base: release
+          base: develop
           head: Flujo-s3
           title: "Actualizar metadatos de archivos del Minisitio"
           body: "Se han actualizado los metadatos de los archivos subidos a S3."
