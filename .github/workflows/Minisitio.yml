@@ -12,7 +12,6 @@ jobs:
   dev-upload-minisitio:
     name: DEV Subir Archivos RAR Descomprimidos a S3 y hacer PR
     runs-on: ubuntu-latest
-    environment: MINISITIO
 
     steps:
       - name: Checkout
