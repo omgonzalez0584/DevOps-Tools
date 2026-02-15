@@ -1,13 +1,10 @@
 name: "Deploy Minisitio"
 
 on:
-  workflow_dispatch:
-    inputs:
-      bucket:
-        description: 'Subida a s3'
-        required: true
-        default: 'minisitio'
-
+  pull_request:
+    branches:
+      - develop
+      
 jobs:
   dev-upload-minisitio:
     name: DEV Subir Archivos RAR Descomprimidos a S3 y hacer PR
