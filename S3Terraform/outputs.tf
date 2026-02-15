@@ -9,7 +9,3 @@ output "bucket_arn" {
 output "bucket_region" {
   value = var.aws_region
 }
-# --- IGNORE ---
-# This is a temporary ignore block
-# End of temporary ignore block
-# --- IGNORE ---
