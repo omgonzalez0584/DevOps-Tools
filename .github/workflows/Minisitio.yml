@@ -1,12 +1,9 @@
 name: "Deploy Minisitio"
 
 on:
-  workflow_dispatch:
-    inputs:
-      bucket:
-        description: 'Subida a s3'
-        required: true
-        default: 'minisitio'
+  push:
+    branches:
+      - Flujo-s3
 
 jobs:
   dev-upload-minisitio:
