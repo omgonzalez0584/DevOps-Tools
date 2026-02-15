@@ -57,7 +57,7 @@ jobs:
           echo "Creando una nueva rama para los cambios..."
           git checkout -b update-minisitio-files
 
-      # Preparar los archivos para el commit (sin usar infra/s3)
+      # Preparar los archivos para el commit 
       - name: Stage the new files and changes
         run: |
           echo "Preparando los archivos para el commit..."
@@ -87,7 +87,7 @@ jobs:
           body: "Se han actualizado los archivos descomprimidos desde el archivo .zip."
           labels: "minisitio-update"
 
-      # Subir archivos descomprimidos a S3 (sin usar infra/s3)
+      # Subir archivos descomprimidos a S3 
       - name: Upload Files to S3 DEV
         run: |
           echo "📤 Subiendo archivos descomprimidos a DEV S3..."
