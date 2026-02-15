@@ -48,14 +48,13 @@ jobs:
           unzip ./Minisitio.zip -d $TMP_DIR
           echo "✅ Archivo descomprimido"
 
-      # Subir directamente los archivos descomprimidos a S3 (sin pasar por el repositorio)
+      # Subir los archivos descomprimidos a S3 (sin pasar por el repositorio)
       - name: Upload Files to S3 DEV
         run: |
           echo "📤 Subiendo archivos descomprimidos a DEV S3..."
           S3_BUCKET_DEV=${{ vars.S3_BUCKET_DEV }}
           LOCAL_PATH="/tmp/minisitio/"
 
-          # Subir cada archivo al bucket S3
           for FILE in "$LOCAL_PATH"*; do
             if [ -f "$FILE" ]; then
               echo "⬆️ Subiendo: $FILE"
@@ -67,10 +66,23 @@ jobs:
             fi
           done
 
-      # Crear un archivo de metadatos para el repo (por ejemplo, una lista de archivos subidos)
-      - name: Create metadata file
+      # Verificar si el archivo de metadatos ya existe en el repositorio
+      - name: Check if metadata file exists
+        id: check_metadata
         run: |
-          echo "Generando archivo de metadatos para el repo..."
+          if [ -f "files_metadata.txt" ]; then
+            echo "El archivo de metadatos ya existe."
+            echo "exists=true" >> $GITHUB_ENV
+          else
+            echo "El archivo de metadatos no existe."
+            echo "exists=false" >> $GITHUB_ENV
+          fi
+
+      # Generar el archivo de metadatos si no existe
+      - name: Generate metadata file if it doesn't exist
+        if: env.exists == 'false'
+        run: |
+          echo "Generando archivo de metadatos..."
           METADATA_FILE="files_metadata.txt"
           echo "Lista de archivos subidos a S3:" > $METADATA_FILE
           for FILE in "$LOCAL_PATH"*; do
@@ -78,11 +90,36 @@ jobs:
               echo "s3://${S3_BUCKET_DEV}/$(basename $FILE)" >> $METADATA_FILE
             fi
           done
+          
+          # Verificar que el archivo de metadatos fue creado correctamente
+          cat $METADATA_FILE
 
-      # Agregar y hacer commit de los metadatos en el repositorio
+      # Si el archivo de metadatos existe, actualizarlo con los nuevos archivos
+      - name: Update metadata file if it exists
+        if: env.exists == 'true'
+        run: |
+          echo "Actualizando archivo de metadatos..."
+          METADATA_FILE="files_metadata.txt"
+          echo "Lista actualizada de archivos subidos a S3:" > $METADATA_FILE
+          for FILE in "$LOCAL_PATH"*; do
+            if [ -f "$FILE" ]; then
+              echo "s3://${S3_BUCKET_DEV}/$(basename $FILE)" >> $METADATA_FILE
+            fi
+          done
+          
+          # Verificar que el archivo de metadatos fue actualizado correctamente
+          cat $METADATA_FILE
+
+      # Configurar la identidad de Git para el commit
+      - name: Configure Git user
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      # Agregar y hacer commit del archivo de metadatos en el repositorio
       - name: Commit metadata file to GitHub
         run: |
-          git add $METADATA_FILE
+          git add files_metadata.txt
           git commit -m "Actualizar metadatos de archivos subidos a S3"
           git push origin Flujo-s3
 
