@@ -1,0 +1,11 @@
+Lista de archivos subidos a S3:
+s3:///Minisitio.zip
+s3:///README.md
+s3:///clean_temp.sh
+s3:///disk_monitor.sh
+s3:///files_metadata.txt
+s3:///hola
+s3:///hola.pub
+s3:///monitor_process.sh
+s3:///sudo
+s3:///system-health-report.sh
