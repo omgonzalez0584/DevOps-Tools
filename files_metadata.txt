@@ -1,4 +1,4 @@
-Lista de archivos subidos a S3 (Actualizado: Mon Feb 16 16:31:23 UTC 2026)
+Lista de archivos subidos a S3 (Actualizado: Mon Feb 16 16:31:47 UTC 2026)
 ----------------------------------------------
 Minisitio.zip
 README.md
