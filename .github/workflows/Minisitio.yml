@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@v11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722
@@ -100,11 +100,7 @@ jobs:
           echo "Generando archivo de metadatos..."
           METADATA_FILE="files_metadata.txt"
           echo "Lista de archivos subidos a S3:" > $METADATA_FILE
-
-          # Lista los archivos en el Bucket S3 y guarda sus rutas en el archivo de metadatos
           aws s3 ls s3://${S3_BUCKET_DEV}/ --recursive | awk '{print $4}' >> $METADATA_FILE
-
-          # Verificar que el archivo de metadatos fue creado correctamente
           cat $METADATA_FILE
 
       # Si el archivo de metadatos existe, actualizarlo con los nuevos archivos
@@ -114,18 +110,13 @@ jobs:
           echo "Actualizando archivo de metadatos..."
           METADATA_FILE="files_metadata.txt"
           echo "Lista actualizada de archivos subidos a S3:" > $METADATA_FILE
-
-          # Lista los archivos en el Bucket S3 y guarda sus rutas en el archivo de metadatos
           aws s3 ls s3://${S3_BUCKET_DEV}/ --recursive | awk '{print $4}' >> $METADATA_FILE
-
-          # Verificar que el archivo de metadatos fue actualizado correctamente
           cat $METADATA_FILE
 
       # Validar si el archivo de metadatos tiene cambios
       - name: Check for changes in metadata file
         id: check_changes
         run: |
-          # Verificar si el archivo files_metadata.txt tiene cambios
           git diff --exit-code files_metadata.txt || echo "Hay cambios en el archivo de metadatos"
         
         continue-on-error: true
@@ -134,7 +125,10 @@ jobs:
       - name: Commit metadata file to GitHub
         if: steps.check_changes.outcome == 'success'
         run: |
-          # Asegúrate de agregar solo el archivo de metadatos
+          # Usar el PAT en lugar de GITHUB_TOKEN para autenticarse
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${{ github.repository }}.git
           git add files_metadata.txt
           git commit -m "Actualizar metadatos de archivos subidos a S3"
           git push origin Flujo-s3
@@ -143,7 +137,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Usar el PAT aquí
           base: develop
           head: Flujo-s3
           title: "Actualizar metadatos de archivos del Minisitio"
