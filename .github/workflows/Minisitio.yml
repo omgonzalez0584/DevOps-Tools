@@ -125,7 +125,6 @@ jobs:
       - name: Check for changes in metadata file
         id: check_changes
         run: |
-          # Verificar si el archivo files_metadata.txt tiene cambios
           git diff --exit-code files_metadata.txt || echo "Hay cambios en el archivo de metadatos"
         
         continue-on-error: true
