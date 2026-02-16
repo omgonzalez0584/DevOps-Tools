@@ -1,4 +1,4 @@
-Lista de archivos subidos a S3:
+Lista actualizada de archivos subidos a S3:
 s3:///Minisitio.zip
 s3:///README.md
 s3:///clean_temp.sh
