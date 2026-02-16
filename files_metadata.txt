@@ -1,2 +1,7 @@
-Lista actualizada de archivos subidos a S3:
-
+Lista de archivos subidos a S3 (Actualizado: Mon Feb 16 16:23:00 UTC 2026)
+----------------------------------------------
+Minisitio.zip
+README.md
+clean_temp.sh
+disk_monitor.sh
+monitor_process.sh
