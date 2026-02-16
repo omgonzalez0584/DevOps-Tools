@@ -7,16 +7,18 @@ on:
 
 jobs:
   dev-upload-minisitio:
-    name: DEV Subir Archivos RAR Descomprimidos a S3 y hacer PR
+    name: DEV Subir Archivos ZIP Descomprimidos a S3 y hacer PR
     runs-on: ubuntu-latest
     environment: MINISITIO
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
@@ -30,43 +32,38 @@ jobs:
           echo "Verificando acceso a S3..."
           aws s3 ls s3://${{ vars.S3_BUCKET_DEV }}/ || exit 1
 
-      - name: Download RAR File from S3
+      - name: Download ZIP File to TMP
         run: |
-          echo "Descargando archivo .zip desde S3..."
-          aws s3 cp s3://${{ vars.S3_BUCKET_DEV }}/Minisitio.zip ./Minisitio.zip || exit 1
+          echo "Descargando archivo .zip a carpeta temporal..."
+          # Descargamos fuera del workspace para que Git no lo trackee
+          aws s3 cp s3://${{ vars.S3_BUCKET_DEV }}/Minisitio.zip /tmp/Minisitio.zip || exit 1
           echo "✅ Archivo .zip descargado"
 
       - name: Install Unzip
         run: sudo apt-get install -y unzip
 
-      # Descomprimir el archivo en un directorio temporal
       - name: Uncompress ZIP File
         run: |
           echo "Descomprimiendo el archivo .zip..."
-          TMP_DIR="/tmp/minisitio"
+          TMP_DIR="/tmp/minisitio_files"
           mkdir -p $TMP_DIR
-          unzip ./Minisitio.zip -d $TMP_DIR
+          unzip /tmp/Minisitio.zip -d $TMP_DIR
           echo "✅ Archivo descomprimido"
 
-      # Subir los archivos descomprimidos a S3 (sin pasar por el repositorio)
       - name: Upload Files to S3 DEV
         run: |
           echo "📤 Subiendo archivos descomprimidos a DEV S3..."
-          S3_BUCKET_DEV=${{ vars.S3_BUCKET_DEV }}
-          LOCAL_PATH="/tmp/minisitio/"
+          LOCAL_PATH="/tmp/minisitio_files/"
+          # Usamos la variable directamente de vars
+          S3_PATH="s3://${{ vars.S3_BUCKET_DEV }}/"
 
           for FILE in "$LOCAL_PATH"*; do
             if [ -f "$FILE" ]; then
-              echo "⬆️ Subiendo: $FILE"
-              if aws s3 cp "$FILE" "s3://${S3_BUCKET_DEV}/$(basename $FILE)"; then
-                echo "✅ Archivo subido correctamente: $(basename $FILE)"
-              else
-                echo "❌ Error al subir: $(basename $FILE)"
-              fi
+              echo "⬆️ Subiendo: $(basename $FILE)"
+              aws s3 cp "$FILE" "$S3_PATH$(basename $FILE)"
             fi
           done
 
-      # Configurar la clave SSH en el flujo de trabajo
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
@@ -74,83 +71,50 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      # Configurar Git para usar SSH
       - name: Configure Git for SSH
         run: |
           git config --global user.name "arfernandz17"
           git config --global user.email "afernadez1@gmail.com"
           git remote set-url origin git@github.com:${{ github.repository }}.git
 
-      # Verificar si el archivo de metadatos ya existe en el repositorio
-      - name: Check if metadata file exists
-        id: check_metadata
+      - name: Generate/Update metadata file
         run: |
-          if [ -f "files_metadata.txt" ]; then
-            echo "El archivo de metadatos ya existe."
-            echo "exists=true" >> $GITHUB_ENV
+          METADATA_FILE="files_metadata.txt"
+          echo "Generando lista de archivos desde S3..."
+          echo "Lista de archivos subidos a S3 (Actualizado: $(date))" > $METADATA_FILE
+          echo "----------------------------------------------" >> $METADATA_FILE
+          aws s3 ls s3://${{ vars.S3_BUCKET_DEV }}/ --recursive | awk '{print $4}' >> $METADATA_FILE
+          cat $METADATA_FILE
+
+      - name: Check for changes and Commit
+        id: git_commit
+        run: |
+          git add files_metadata.txt
+          # Verificamos si hay cambios reales en el archivo de metadatos
+          if git diff --cached --quiet; then
+            echo "No hay cambios en los metadatos. Saltando commit."
+            echo "changed=false" >> $GITHUB_OUTPUT
           else
-            echo "El archivo de metadatos no existe."
-            echo "exists=false" >> $GITHUB_ENV
+            echo "Cambios detectados. Realizando commit..."
+            git commit -m "Actualizar metadatos de archivos subidos a S3"
+            git push origin Flujo-s3
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-      # Generar el archivo de metadatos si no existe (primera ejecución)
-      - name: Generate metadata file if it doesn't exist
-        if: env.exists == 'false'
-        run: |
-          echo "Generando archivo de metadatos..."
-          METADATA_FILE="files_metadata.txt"
-          echo "Lista de archivos subidos a S3:" > $METADATA_FILE
-
-          # Lista los archivos en el Bucket S3 y guarda sus rutas en el archivo de metadatos
-          aws s3 ls s3://${S3_BUCKET_DEV}/ --recursive | awk '{print $4}' >> $METADATA_FILE
-          
-          # Verificar que el archivo de metadatos fue creado correctamente
-          cat $METADATA_FILE
-
-      # Si el archivo de metadatos existe, actualizarlo con los nuevos archivos
-      - name: Update metadata file if it exists
-        if: env.exists == 'true'
-        run: |
-          echo "Actualizando archivo de metadatos..."
-          METADATA_FILE="files_metadata.txt"
-          echo "Lista actualizada de archivos subidos a S3:" > $METADATA_FILE
-
-          # Lista los archivos en el Bucket S3 y guarda sus rutas en el archivo de metadatos
-          aws s3 ls s3://${S3_BUCKET_DEV}/ --recursive | awk '{print $4}' >> $METADATA_FILE
-          
-          # Verificar que el archivo de metadatos fue actualizado correctamente
-          cat $METADATA_FILE
-
-      # Validar si el archivo de metadatos tiene cambios
-      - name: Check for changes in metadata file
-        id: check_changes
-        run: |
-          git diff --exit-code files_metadata.txt || echo "Hay cambios en el archivo de metadatos"
-        
-        continue-on-error: true
-
-      # Solo hacer commit si hay cambios en el archivo de metadatos
-      - name: Commit metadata file to GitHub
-        if: steps.check_changes.outcome == 'success'
-        run: |
-          # Asegúrate de agregar solo el archivo de metadatos
-          git add files_metadata.txt
-          git commit -m "Actualizar metadatos de archivos subidos a S3"
-          git push origin Flujo-s3
-
-      # Crear un Pull Request para los cambios de metadatos
       - name: Create Pull Request
+        if: steps.git_commit.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v4
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Usar el PAT aquí
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           base: develop
           head: Flujo-s3
           title: "Actualizar metadatos de archivos del Minisitio"
-          body: "Se han actualizado los metadatos de los archivos subidos a S3."
+          body: "Se han actualizado los metadatos de los archivos subidos a S3. Este PR fue generado automáticamente por el flujo de despliegue."
           labels: "minisitio-update"
 
-      # Limpieza (eliminar archivos temporales)
-      - name: Cleanup (remove temp files)
+      - name: Cleanup
+        if: always()
         run: |
           echo "🧹 Eliminando archivos temporales..."
-          rm -rf /tmp/minisitio
+          rm -rf /tmp/minisitio_files
+          rm -f /tmp/Minisitio.zip
