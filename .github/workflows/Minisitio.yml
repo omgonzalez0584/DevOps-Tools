@@ -100,8 +100,10 @@ jobs:
           echo "Generando archivo de metadatos..."
           METADATA_FILE="files_metadata.txt"
           echo "Lista de archivos subidos a S3:" > $METADATA_FILE
+
           # Lista los archivos en el Bucket S3 y guarda sus rutas en el archivo de metadatos
           aws s3 ls s3://${S3_BUCKET_DEV}/ --recursive | awk '{print $4}' >> $METADATA_FILE
+          
           # Verificar que el archivo de metadatos fue creado correctamente
           cat $METADATA_FILE
 
@@ -112,8 +114,10 @@ jobs:
           echo "Actualizando archivo de metadatos..."
           METADATA_FILE="files_metadata.txt"
           echo "Lista actualizada de archivos subidos a S3:" > $METADATA_FILE
+
           # Lista los archivos en el Bucket S3 y guarda sus rutas en el archivo de metadatos
           aws s3 ls s3://${S3_BUCKET_DEV}/ --recursive | awk '{print $4}' >> $METADATA_FILE
+          
           # Verificar que el archivo de metadatos fue actualizado correctamente
           cat $METADATA_FILE
 
