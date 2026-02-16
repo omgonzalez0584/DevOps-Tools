@@ -1,0 +1,108 @@
+name: "Verify Files in S3 and Create PR"
+
+on:
+  push:
+    branches:
+      - Flujo-s3
+
+jobs:
+  dev-verify-files-in-s3:
+    name: Verificar cambios en S3 y crear PR si es necesario
+    runs-on: ubuntu-latest
+    environment: MINISITIO
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN_DEV }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Verify AWS Connection
+        run: |
+          echo "Verificando conexión AWS DEV..."
+          aws sts get-caller-identity
+          echo "Verificando acceso a S3..."
+          aws s3 ls s3://${{ vars.S3_BUCKET_DEV }}/ || exit 1
+
+      # Verificar si el archivo .zip ya está en S3
+      - name: Check if Minisitio.zip exists in S3
+        id: check_zip_in_s3
+        run: |
+          echo "Verificando si el archivo Minisitio.zip existe en S3..."
+          if aws s3 ls s3://${{ vars.S3_BUCKET_DEV }}/Minisitio.zip; then
+            echo "El archivo Minisitio.zip ya existe en S3."
+            echo "exists=true" >> $GITHUB_ENV
+          else
+            echo "El archivo Minisitio.zip no existe en S3."
+            echo "exists=false" >> $GITHUB_ENV
+          fi
+
+      # Si el archivo no existe, descomprimirlo y subir los archivos
+      - name: Uncompress and Upload Files to S3 if First Time
+        if: env.exists == 'false'
+        run: |
+          echo "Descargando y descomprimiendo Minisitio.zip..."
+          aws s3 cp s3://${{ vars.S3_BUCKET_DEV }}/Minisitio.zip ./Minisitio.zip || exit 1
+          mkdir -p /tmp/minisitio
+          unzip ./Minisitio.zip -d /tmp/minisitio
+          echo "Archivos descomprimidos correctamente."
+
+          # Subir los archivos descomprimidos a S3
+          echo "Subiendo archivos descomprimidos a S3..."
+          for FILE in /tmp/minisitio/*; do
+            if [ -f "$FILE" ]; then
+              echo "Subiendo $FILE a S3..."
+              aws s3 cp "$FILE" "s3://${{ vars.S3_BUCKET_DEV }}/$(basename $FILE)" || exit 1
+              echo "Archivo subido correctamente."
+            fi
+          done
+
+      # Si ya existen archivos en S3, hacer la comparación de los archivos
+      - name: Compare Files in S3 and Local
+        if: env.exists == 'true' || env.exists == 'false'
+        run: |
+          echo "Verificando los archivos en S3 y comparando..."
+          
+          # Lista los archivos actuales en S3
+          S3_FILES=$(aws s3 ls s3://${{ vars.S3_BUCKET_DEV }}/ --recursive | awk '{print $4}')
+
+          # Lista los archivos descomprimidos en el directorio temporal
+          LOCAL_FILES=$(ls /tmp/minisitio/)
+
+          echo "Archivos en S3:"
+          echo "$S3_FILES"
+          echo "Archivos locales:"
+          echo "$LOCAL_FILES"
+
+          # Comparar los archivos (aquí deberías agregar una lógica de comparación)
+          if [ "$S3_FILES" != "$LOCAL_FILES" ]; then
+            echo "Hay cambios en los archivos. Creando PR..."
+            echo "hay_cambios=true" >> $GITHUB_ENV
+          else
+            echo "No hay cambios en los archivos."
+            echo "hay_cambios=false" >> $GITHUB_ENV
+          fi
+
+      # Crear PR si hay cambios en los archivos
+      - name: Create Pull Request if changes detected
+        if: env.hay_cambios == 'true'
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Usar el PAT aquí
+          base: develop
+          head: Flujo-s3
+          title: "Actualizar metadatos de archivos del Minisitio"
+          body: "Se han actualizado los metadatos de los archivos subidos a S3."
+          labels: "minisitio-update"
+
+      # Limpieza (eliminar archivos temporales)
+      - name: Cleanup (remove temp files)
+        run: |
+          echo "🧹 Eliminando archivos temporales..."
+          rm -rf /tmp/minisitio

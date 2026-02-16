@@ -3,7 +3,7 @@ name: "Deploy Minisitio"
 on:
   push:
     branches:
-      - Flujo-s3
+     # - Flujo-s3
 
 jobs:
   dev-upload-minisitio:
